@@ -18,6 +18,10 @@ if [ -f "$required_env_vars" ]; then
     if [ ! -s "$required_env_vars" ]; then
         warning "Warning: File $required_env_vars is empty continuing to process secrets"
     fi
+    if [ ! -v HCP_CLIENT_ID ] || [ ! -v HCP_CLIENT_SECRET ]; then
+        error "Error: HCP_CLIENT_ID and/or HCP_CLIENT_SECRET is not set. If you want to fetch secrets, set them and run the script again."
+        continue_flag=0
+    fi
     while IFS= read -r line || [[ -n "$line" ]]; do
         # Process each item in the list
         info "Fetching Local Enironmental Variable: $line"
@@ -45,6 +49,7 @@ else
         header "Getting secrets from $secret_list"
         if [ ! -s "$secret_list" ]; then
             warning "Warning: File $secret_list has no secrets to fetch. if you want to fetch secrets, add them to the file and run the script again."
+            
             exit 1
         fi
         if [ -f "$file_path" ]; then rm $file_path; fi
