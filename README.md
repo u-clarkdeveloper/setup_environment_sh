@@ -20,10 +20,11 @@ chmod +x setup_environment.sh
 ```
 
 ## How it works
-The script will look for two files in the same directory
+The script will look for three files in the same directory
 ```shell
 ./required_env_vars
 ./secret_list
+./secret_env_map
 ```
 
 ### ./required_env_vars
@@ -31,3 +32,12 @@ This file will include a list of environment variables that should be set and if
 
 ### ./secret_list
 This file will include a list of the secrets that are stored in Hashicorp Vault Secrets Service. It will pull down the the secrets and place them in a secrets.env file. You can then use this file to load secrets into your program or docker container. If a secret is not found it will give you an error and have you fix the issue and try again.
+
+### ./secret_env_map
+This file is optional, but if you would like to map a secret key to another varriable, you can add this file and place on each line a key-pair seperated by : to denote mappings from secret to env varriable you would like instead in the secrets.env file. Usefull if your vault keys don't match the env variables required by your application. Say a docker image that is looking for a specific variable.
+
+e.g.
+```shell
+MY_VAULT_SECRET:CUSTOM_ENV_VAR
+```
+Then instead of MY_VAULT_SECRET=SUPER_SECRET_VALUE in your secrets.env file you would get CUSTOM_ENV_VAR=SUPER_SECRET_VALUE

@@ -6,7 +6,16 @@ source <(curl -s https://raw.githubusercontent.com/u-clarkdeveloper/color_echo_s
 file_path="./secrets.env"
 secret_list="./secret_list"
 required_env_vars="./required_env_vars"
+secret_env_map="./secret_env_map"
 continue_flag=1
+
+declare -A secretmappings
+while IFS= read -r line || [[ -n "$line" ]]; do
+    # Process each item in the list
+    mapping=(${line//:/ })
+    secretmappings[${mapping[0]}]=${mapping[1]}
+
+done < "$secret_env_map"
 
 # Set the title of the script
 title "Setting up environment with secrets from Hashicorp Vault Secrets."
@@ -19,8 +28,9 @@ if [ -f "$required_env_vars" ]; then
         warning "Warning: File $required_env_vars is empty continuing to process secrets"
     fi
     if [ ! -v HCP_CLIENT_ID ] || [ ! -v HCP_CLIENT_SECRET ] || [ ! -v HCP_CLIENT_APP ]; then
-        error "Error: HCP_CLIENT_ID and/or HCP_CLIENT_SECRET is not set. If you want to fetch secrets, set them and run the script again."
+        error "Error: HCP_CLIENT_ID, HCP_CLIENT_SECRET, or HCP_CLIENT_APP is not set. If you want to fetch secrets, set them and run the script again."
         continue_flag=0
+        exit 1
     fi
     while IFS= read -r line || [[ -n "$line" ]]; do
         # Process each item in the list
@@ -31,6 +41,7 @@ if [ -f "$required_env_vars" ]; then
             error "ERROR: Environment variable $line does not exist or is not set. Set it with the command"
             highlight "export $line=<$line>"
             continue_flag=0
+            exit 1
         fi
     done < "$required_env_vars"
 else
@@ -57,11 +68,18 @@ else
         while IFS= read -r line || [[ -n "$line" ]]; do
             # Process each item in the list
             info "Fetching Secret: $line"
+            
             value=$(vlt secrets get -a $HCP_CLIENT_APP --plaintext $line)
             if [ "${value:0:7}" == "Error: " ]; then
                 error "Secret $line not found. Please check the secret name and try again."
             else
-                echo "$line=$value" >> $file_path
+                if [ ! -v ${secretmappings[${line}]} ]; then
+                    good "Mapping Exists: $line is mapped to ${secretmappings[${line}]}"
+                    echo "${secretmappings[${line}]}=$value" >> $file_path
+                else
+                    echo "$line=$value" >> $file_path
+                fi
+                
             fi
         done < "$secret_list"
     else
