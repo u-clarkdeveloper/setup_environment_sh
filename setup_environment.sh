@@ -3,7 +3,7 @@
 source <(curl -s https://raw.githubusercontent.com/u-clarkdeveloper/color_echo_sh/main/color_echo.sh)
 
 #Setup variables
-file_path="./.env"
+file_path="./secrets.env"
 secret_list="./secret_list"
 required_env_vars="./required_env_vars"
 continue_flag=1
