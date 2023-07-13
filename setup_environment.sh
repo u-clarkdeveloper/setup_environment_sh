@@ -1,4 +1,5 @@
 #!/bin/bash
+echo "this is a test"
 
 file_path="./.env"
 secret_list="./secret_list"
