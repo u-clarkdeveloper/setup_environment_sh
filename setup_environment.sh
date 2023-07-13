@@ -1,5 +1,4 @@
 #!/bin/bash
-echo "this is a test"
 
 file_path="./.env"
 secret_list="./secret_list"
@@ -9,23 +8,15 @@ echo "Setting up environment with secrets from Hashicorp Vault Secrets."
 echo "--------------------------------------------------------------"
 echo ""
 
-
-
 continue_flag=1
-
-if [ -f "$file_path" ]; then
-    rm "$file_path"
-    touch "$file_path"
-else
-    touch "$file_path"
-    echo "File .env file created."
-    echo ""
-fi
 
 # Check if the required environment variables file exists
 if [ -f "$required_env_vars" ]; then
     echo "Getting required environment variables from $required_env_vars"
     echo "--------------------------------------------------------------"
+    if [ -s "$required_env_vars" ]: then
+        echo "INFO: File $required_env_vars is empty continuing to process secrets"
+    fi
     while IFS= read -r line || [[ -n "$line" ]]; do
         # Process each item in the list
         echo "Fetching Variable: $line"
@@ -40,7 +31,9 @@ if [ -f "$required_env_vars" ]; then
     done < "$required_env_vars"
     echo ""
 else
+    continue_flag=0
     echo "File not found: $required_env_vars, Please create the file with the list of required environment variables."
+    echo ""
 fi
 
 # Check if the secret list file exists
