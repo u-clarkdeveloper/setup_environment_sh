@@ -18,7 +18,7 @@ if [ -f "$required_env_vars" ]; then
     if [ ! -s "$required_env_vars" ]; then
         warning "Warning: File $required_env_vars is empty continuing to process secrets"
     fi
-    if [ ! -v HCP_CLIENT_ID ] || [ ! -v HCP_CLIENT_SECRET ]; then
+    if [ ! -v HCP_CLIENT_ID ] || [ ! -v HCP_CLIENT_SECRET ] || [ ! -v HCP_CLIENT_APP ]; then
         error "Error: HCP_CLIENT_ID and/or HCP_CLIENT_SECRET is not set. If you want to fetch secrets, set them and run the script again."
         continue_flag=0
     fi
@@ -57,7 +57,7 @@ else
         while IFS= read -r line || [[ -n "$line" ]]; do
             # Process each item in the list
             info "Fetching Secret: $line"
-            value=$(vlt secrets get -plaintext $line)
+            value=$(vlt secrets get -a $HCP_CLIENT_APP --plaintext $line)
             if [ "${value:0:7}" == "Error: " ]; then
                 error "Secret $line not found. Please check the secret name and try again."
             else
