@@ -115,8 +115,3 @@ fetch_valut_secrets
 
 footer "Done!!! $(checkmark)"
 exit 0
-
-
-
-
-
