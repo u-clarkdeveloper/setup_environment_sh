@@ -24,7 +24,7 @@ setup_mappings () {
         else
             while IFS= read -r line || [[ -n "$line" ]]; do
                 # Process each mapping in the list
-                mapping=(${line//:/ })
+                mapping=(${line/:/ })
                 info "Mapping: ${mapping[0]} to ${mapping[1]}"
                 secretmappings[${mapping[0]}]=${mapping[1]}
 
@@ -94,7 +94,11 @@ fetch_valut_secrets () {
                 info "Secret $line found... $(checkmark)"
                 if [ ! -v ${secretmappings[${line}]} ]; then
                     good "Mapping Exists: $line is mapped to ${secretmappings[${line}]}"
-                    echo "${secretmappings[${line}]}=$value" >> $file_path
+                    if [ "${secretmappings[${line}]:0:1}" == "~" ]; then
+                        echo $(printf $(printf '%s' "${secretmappings[${line}]:1}") "$value") >> $file_path
+                    else
+                        echo "${secretmappings[${line}]}=$value" >> $file_path
+                    fi
                 else
                     echo "$line=$value" >> $file_path
                 fi

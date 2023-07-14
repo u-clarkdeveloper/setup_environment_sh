@@ -41,3 +41,20 @@ e.g.
 MY_VAULT_SECRET:CUSTOM_ENV_VAR
 ```
 Then instead of MY_VAULT_SECRET=SUPER_SECRET_VALUE in your secrets.env file you would get CUSTOM_ENV_VAR=SUPER_SECRET_VALUE
+
+#### Additional mapping functionality
+If you would like to inject the value comming from Hashicorp Secret Vault into a string, you can start off your mapped varrible with a ~ and then place %s where you would like the value to be inserted. For example, if I had a uri that didn't have the protocol defined in the Vault value I could then and the protocol to the  the mapping and inject the secret after the protocol.
+
+e.g.
+```shell
+MY_VALUT_SECRET_URI=username:password@some.host.com
+```
+I would like it to be:
+```shell
+MY_CONNECTION_STRING='sftp://username:password@some.host.com'
+```
+
+My mapping would then look like
+```shell
+MY_VALUT_SECRET_URI:~MY_CONNECTION_STRING='sftp://%s'
+```
