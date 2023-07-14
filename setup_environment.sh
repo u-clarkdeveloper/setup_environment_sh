@@ -1,78 +1,97 @@
 #!/bin/bash
+
 # pull in color echo commands
 source <(curl -s https://raw.githubusercontent.com/u-clarkdeveloper/color_echo_sh/main/color_echo.sh)
 
-#Setup variables
+# Setup trap of exit early
+trap 'if [ "$?" -eq 1 ]; then error "Setup exited early"; fi' EXIT
+
+#Setup file path variables
 file_path="./secrets.env"
 secret_list="./secret_list"
 required_env_vars="./required_env_vars"
 secret_env_map="./secret_env_map"
-continue_flag=1
 
+#Setup global variables
 declare -A secretmappings
-while IFS= read -r line || [[ -n "$line" ]]; do
-    # Process each item in the list
-    mapping=(${line//:/ })
-    secretmappings[${mapping[0]}]=${mapping[1]}
 
-done < "$secret_env_map"
+#Declare Functions
+setup_mappings () {
+    header "Getting secret mappings from $secret_env_map"
+    if [ -f "$secret_env_map" ]; then
+        if [ ! -s "$secret_env_map" ]; then
+            warning "Warning: File $secret_env_map is empty. No mappings will be used."
+        else
+            while IFS= read -r line || [[ -n "$line" ]]; do
+                # Process each mapping in the list
+                mapping=(${line//:/ })
+                info "Mapping: ${mapping[0]} to ${mapping[1]}"
+                secretmappings[${mapping[0]}]=${mapping[1]}
 
-# Set the title of the script
-title "Setting up environment with secrets from Hashicorp Vault Secrets."
-
-# Check if the required environment variables file exists
-if [ -f "$required_env_vars" ]; then
-    header "Getting required environment variables from $required_env_vars"
-
-    if [ ! -s "$required_env_vars" ]; then
-        warning "Warning: File $required_env_vars is empty continuing to process secrets"
+            done < "$secret_env_map"
+        fi
+        
+    else
+        warning "File: $secret_env_map not found. No mappings will be used."
     fi
+}
+
+setup_required_env_vars () {
+    header "Getting required environment variables from $required_env_vars"
+    # Check for required Vault Secrets environment variables
     if [ ! -v HCP_CLIENT_ID ] || [ ! -v HCP_CLIENT_SECRET ] || [ ! -v HCP_CLIENT_APP ]; then
         error "Error: HCP_CLIENT_ID, HCP_CLIENT_SECRET, or HCP_CLIENT_APP is not set. If you want to fetch secrets, set them and run the script again."
-        continue_flag=0
         exit 1
     fi
-    while IFS= read -r line || [[ -n "$line" ]]; do
-        # Process each item in the list
-        info "Fetching Local Enironmental Variable: $line"
-        if [[ -n ${!line} ]]; then
-        :
-        else
-            error "ERROR: Environment variable $line does not exist or is not set. Set it with the command"
-            highlight "export $line=<$line>"
-            continue_flag=0
-            exit 1
-        fi
-    done < "$required_env_vars"
-else
-    continue_flag=0
-    error "File not found: $required_env_vars, Please create the file with the list of required environment variables."
-fi
+    # Check if the required environment variables file exists
+    if [ -f "$required_env_vars" ]; then
+        if [ ! -s "$required_env_vars" ]; then
+            warning "Warning: File $required_env_vars is empty continuing to process secrets"
+        else 
+            while IFS= read -r line || [[ -n "$line" ]]; do
+                # Process each item in the list
+                
+                if [[ -n ${!line} ]]; then
+                    info "Checking Local Enironmental Variable: $line... $(checkmark)"
 
-# Check if the secret list file exists
-if [[ continue_flag -eq 0 ]]; then
-    error "Exiting script. Please set the environment variables and run the script again."
-    exit 1
-else
+                else
+                    info "Checking Local Enironmental Variable: $line... $(xmark)"
+                    error "ERROR: Environment variable $line does not exist or is not set. Set it with the command"
+                    highlight "export $line=<$line>"
+                    exit 1
+                fi
+            done < "$required_env_vars"
+        fi
+    else
+        error "File not found: $required_env_vars, Please create the file with the list of required environment variables."
+        exit 1
+    fi
+}
+
+fetch_valut_secrets () {
+    header "Getting secrets from $secret_list"
     # Check if the file exists
-    if [ -f "$secret_list" ]; then
-        # Read the file line by line and loop over the list
-        header "Getting secrets from $secret_list"
+    if [ ! -f "$secret_list" ]; then
+        error "File not found: $secret_list, Please create the file with the list of secrets to fetch."
+        exit 1
+    else
+        # Check for empty secret_list file
         if [ ! -s "$secret_list" ]; then
             warning "Warning: File $secret_list has no secrets to fetch. if you want to fetch secrets, add them to the file and run the script again."
-            
             exit 1
         fi
+        # remove existing secrets.env file if it exists
         if [ -f "$file_path" ]; then rm $file_path; fi
         
+        # read the secret_list file line by line
         while IFS= read -r line || [[ -n "$line" ]]; do
             # Process each item in the list
-            info "Fetching Secret: $line"
-            
             value=$(vlt secrets get -a $HCP_CLIENT_APP --plaintext $line)
             if [ "${value:0:7}" == "Error: " ]; then
-                error "Secret $line not found. Please check the secret name and try again."
+                error "Secret $line not found. Please check the secret name and try again... $(xmark)"
+                exit 1
             else
+                info "Secret $line found... $(checkmark)"
                 if [ ! -v ${secretmappings[${line}]} ]; then
                     good "Mapping Exists: $line is mapped to ${secretmappings[${line}]}"
                     echo "${secretmappings[${line}]}=$value" >> $file_path
@@ -82,9 +101,22 @@ else
                 
             fi
         done < "$secret_list"
-    else
-        error "File not found: $secret_list, Please create the file with the list of secrets to fetch."
     fi
-    footer "Done"
-fi
+}
+
+
+
+# Run the script functions
+title "Setting up environment with secrets from Hashicorp Vault Secrets."
+
+setup_mappings
+setup_required_env_vars
+fetch_valut_secrets
+
+footer "Done!!! $(checkmark)"
+exit 0
+
+
+
+
 
