@@ -1,4 +1,6 @@
-# setup_environment_sh
+# setup_environment_sh Script
+
+## !!!Warning!!! This could have bugs and/or vaulnerbilities, This is a script to make my life easier. Use at your own risk
 
 ## Description
 This script is used to check to make sure env variables exist and are set. 
