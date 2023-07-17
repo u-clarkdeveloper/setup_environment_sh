@@ -15,6 +15,16 @@ secret_env_map="./secret_env_map"
 #Setup global variables
 declare -A secretmappings
 
+#check to make sure vlt is installed on the system
+check_vlt () {
+    if ! command -v vlt &> /dev/null
+    then
+        error "vlt could not be found. Please install it and try again."
+        exit 1
+    fi
+}
+
+
 #Declare Functions
 setup_mappings () {
     header "Getting secret mappings from $secret_env_map"
@@ -113,6 +123,7 @@ fetch_valut_secrets () {
 # Run the script functions
 title "Setting up environment with secrets from Hashicorp Vault Secrets."
 
+check_vlt
 setup_mappings
 setup_required_env_vars
 fetch_valut_secrets
